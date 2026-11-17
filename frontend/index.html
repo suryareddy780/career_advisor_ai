@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Career Advisor AI — Responsible & Unbiased Assistant</title>
+  <style>
+    :root { --bg: #0f172a; --card: #1e293b; --border: #334155; --text: #f8fafc; --accent: #38bdf8; --green: #22c55e; --amber: #f59e0b; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 24px; }
+    .container { max-width: 1180px; margin: 0 auto; display: grid; gap: 20px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1.2fr; gap: 20px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+    h1, h2, h3 { margin-top: 0; }
+    label { display: block; font-size: 0.85rem; color: #94a3b8; margin-top: 10px; margin-bottom: 5px; }
+    input, textarea { width: 100%; box-sizing: border-box; background: #0f172a; border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 10px; font-family: inherit; }
+    button { background: var(--accent); color: #0f172a; border: none; padding: 10px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 14px; }
+    .badge-safe { display: inline-block; background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid var(--green); padding: 4px 10px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
+    .role-box { background: #0f172a; border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+    .phase-box { border-left: 3px solid var(--accent); padding-left: 12px; margin-bottom: 10px; }
+    .muted { color: #94a3b8; font-size: 0.85rem; }
+    .error-banner { background: rgba(239,68,68,0.15); border: 1px solid #ef4444; color: #fca5a5; padding: 10px; border-radius: 6px; display: none; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div>
+      <h1>Career Advisor AI <span class="badge-safe">Responsible AI & Bias-Audited</span></h1>
+      <p class="muted">Demographic-blind job recommendations and structured learning roadmaps powered by fairness guardrails.</p>
+    </div>
+
+    <div class="grid-2">
+      <!-- User Profile Input -->
+      <div class="card">
+        <h2>1. Candidate Profile</h2>
+        <label>Name (Optional)</label>
+        <input id="candidateName" value="Alex Rivera" />
+        <label>Verified Skills (comma-separated)</label>
+        <input id="skills" value="Python, SQL, Machine Learning, FastAPI" />
+        <label>Years of Experience</label>
+        <input id="experience" type="number" step="0.5" value="2" />
+        <label>Career Interests (comma-separated)</label>
+        <input id="interests" value="AI, Engineering, Ethics" />
+        <label>Bio / Context (Protected demographics auto-redacted for fairness)</label>
+        <textarea id="rawBio" rows="3">26 year old female software developer passionate about building ethical AI systems.</textarea>
+        <button onclick="getAdvice()">Generate Unbiased Career Plan</button>
+        <div id="errorBox" class="error-banner"></div>
+      </div>
+
+      <!-- Responsible AI Safety & Fairness Audit -->
+      <div class="card">
+        <h2>2. Responsible AI Safety & Bias Audit</h2>
+        <div id="auditPanel">
+          <p class="muted">Submit a profile to run demographic redaction, safety filtering, and fairness verification.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Suggested Jobs & 12-Week Roadmap -->
+    <div class="grid-2">
+      <div class="card">
+        <h2>3. Top Recommended Roles (Merit-Based)</h2>
+        <div id="jobsPanel"><p class="muted">Awaiting profile evaluation...</p></div>
+      </div>
+      <div class="card">
+        <h2>4. Personalized 12-Week Upskilling Roadmap</h2>
+        <div id="roadmapPanel"><p class="muted">Awaiting profile evaluation...</p></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function getAdvice() {
+      const errorBox = document.getElementById('errorBox');
+      errorBox.style.display = 'none';
+
+      const payload = {
+        candidate_name: document.getElementById('candidateName').value,
+        skills: document.getElementById('skills').value.split(',').map(s => s.trim()).filter(Boolean),
+        experience_years: parseFloat(document.getElementById('experience').value) || 0,
+        interests: document.getElementById('interests').value.split(',').map(s => s.trim()).filter(Boolean),
+        raw_bio: document.getElementById('rawBio').value
+      };
+
+      const res = await fetch('/api/advise', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        errorBox.innerText = data.detail || 'Safety policy violation.';
+        errorBox.style.display = 'block';
+        return;
+      }
+
+      const audit = data.responsible_ai_audit;
+      document.getElementById('auditPanel').innerHTML = `
+        <p><span class="badge-safe">${audit.safety_status}</span></p>
+        <p><strong>Stripped Protected Attributes:</strong> ${audit.stripped_protected_terms.length ? audit.stripped_protected_terms.join(', ') : 'None detected'}</p>
+        <p><strong>Sanitized Bio Used by Model:</strong><br/><span class="muted">${audit.sanitized_bio || 'N/A'}</span></p>
+        <ul>${audit.fairness_principles.map(p => `<li class="muted">${p}</li>`).join('')}</ul>
+      `;
+
+      document.getElementById('jobsPanel').innerHTML = data.suggested_jobs.map(job => `
+        <div class="role-box">
+          <strong>${job.title}</strong> — <span style="color:#22c55e;font-weight:600">${job.match_score}% Match</span>
+          <div class="muted">${job.avg_salary_range} | Matched: ${job.matched_skills.join(', ')}</div>
+          <div class="muted" style="margin-top:4px">${job.why_recommended}</div>
+          <div class="muted" style="margin-top:4px"><strong>Next Skills:</strong> ${job.skill_gaps_to_learn.join(', ')}</div>
+        </div>
+      `).join('');
+
+      document.getElementById('roadmapPanel').innerHTML = data.personalized_roadmap.map(step => `
+        <div class="phase-box">
+          <strong>${step.phase}</strong>
+          <p class="muted" style="margin:4px 0 0 0">${step.action}</p>
+        </div>
+      `).join('');
+    }
+  </script>
+</body>
+</html>
